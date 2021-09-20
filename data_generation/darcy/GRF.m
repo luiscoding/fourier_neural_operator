@@ -4,8 +4,8 @@
 % where Delta is the Laplacian with zero Neumann boundary conditions.
 
 
-function U = GRF(alpha,tau,s)
-	
+function U = GRF(alpha,tau,s,randseed)
+	rng(randseed)
 	% Random variables in KL expansion
 	xi = normrnd(0,1,s);
 	
