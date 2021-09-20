@@ -1,6 +1,6 @@
 %Number of grid points on [0,1]^2 
 %i.e. uniform mesh with step h=1/(s-1)
-s = 256;
+s = 421;
 
 %Create mesh (only needed for plotting)
 [X,Y] = meshgrid(0:(1/(s-1)):1);
@@ -24,7 +24,7 @@ lognorm_a = exp(norm_a);
 %Another way to achieve ellipticity is to threshhold the coefficients
 thresh_a = zeros(s,s);
 thresh_a(norm_a >= 0) = 12;
-thresh_a(norm_a < 0) = 4;
+thresh_a(norm_a < 0) = 1;
 
 %Forcing function, f(x) = 1 
 f = ones(s,s);
