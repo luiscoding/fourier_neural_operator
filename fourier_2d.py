@@ -144,7 +144,7 @@ class FNO2d(nn.Module):
 TRAIN_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
 #TEST_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth2.mat'
 # TEST_TRAIN_PATH = 'data/output12_6_train.mat'
-TEST_PATH = 'data/output12_6_test.mat'
+TEST_PATH = 'data/output12_3_test_0.2_100.mat'
 
 ntrain = 1000
 ntest =100
@@ -153,7 +153,7 @@ ntest =100
 batch_size = 20
 learning_rate = 0.001
 
-epochs = 500
+epochs = 1000
 step_size = 100
 gamma = 0.5
 
@@ -179,8 +179,8 @@ x_normalizer = UnitGaussianNormalizer(x_test)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
 
-# y_normalizer = UnitGaussianNormalizer(y_test)
-# y_train = y_normalizer.encode(y_train)
+y_normalizer = UnitGaussianNormalizer(y_test)
+y_train = y_normalizer.encode(y_train)
 
 x_train = x_train.reshape(ntrain,s,s,1)
 x_test = x_test.reshape(ntest,s,s,1)
@@ -193,14 +193,14 @@ test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test,
 ################################################################
 model = FNO2d(modes, modes, width).cuda()
 print(count_params(model))
-#model.load_state_dict(torch.load('models/12_3.model'))
+#model.load_state_dict(torch.load('models/'+'12_3_0.2_norm_test.model'))
 #model.cuda()
 optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
 myloss = LpLoss(size_average=False)
-model_save ='12_3_with_norm_a_test.model'
-#y_normalizer.cuda()
+model_save ='12_3_0.2_norm_test.model'
+y_normalizer.cuda()
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
@@ -211,8 +211,8 @@ for ep in range(epochs):
 
         optimizer.zero_grad()
         out = model(x).reshape(batch_size, s, s)
-        # out = y_normalizer.decode(out)
-        # y = y_normalizer.decode(y)
+        out = y_normalizer.decode(out)
+        y = y_normalizer.decode(y)
     #
         loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
         loss.backward()
@@ -228,7 +228,7 @@ for ep in range(epochs):
             x, y = x.cuda(), y.cuda()
 
             out = model(x).reshape(batch_size, s, s)
-            # out = y_normalizer.decode(out)
+            out = y_normalizer.decode(out)
 
             test_l2 += myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
 
