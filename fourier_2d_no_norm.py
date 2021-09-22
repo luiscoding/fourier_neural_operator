@@ -142,9 +142,9 @@ class FNO2d(nn.Module):
 # configs
 ################################################################
 TRAIN_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
-#TEST_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth2.mat'
-# TEST_TRAIN_PATH = 'data/output12_6_train.mat'
-TEST_PATH = 'data/output12_6_test.mat'
+# TEST_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth2.mat'
+TEST_PATH = 'data/output12_3_test_0.2_100.mat'
+#TEST_PATH = 'data/output12_6_test.mat'
 
 ntrain = 1000
 ntest =100
@@ -175,11 +175,11 @@ reader.load_file(TEST_PATH)
 x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
 y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
 
-x_normalizer = UnitGaussianNormalizer(x_test)
-x_train = x_normalizer.encode(x_train)
-x_test = x_normalizer.encode(x_test)
+# x_normalizer = UnitGaussianNormalizer(x_train)
+# x_train = x_normalizer.encode(x_train)
+# x_test = x_normalizer.encode(x_test)
 
-# y_normalizer = UnitGaussianNormalizer(y_test)
+# y_normalizer = UnitGaussianNormalizer(y_train)
 # y_train = y_normalizer.encode(y_train)
 
 x_train = x_train.reshape(ntrain,s,s,1)
@@ -199,8 +199,8 @@ optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
 myloss = LpLoss(size_average=False)
-model_save ='12_3_with_norm_a_test.model'
-#y_normalizer.cuda()
+model_save ='12_3_0.2_no_norm.model'
+# y_normalizer.cuda()
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
@@ -235,7 +235,10 @@ for ep in range(epochs):
     train_l2/= ntrain
     test_l2 /= ntest
 
+
     t2 = default_timer()
     print(ep, t2-t1, train_l2, test_l2)
+
 savemat(TEST_PATH+'_'+model_save+".mat", {"sol_learn": out.detach().cpu().numpy(),'sol_ground': y.view(batch_size,s,s).detach().cpu().numpy()})
 torch.save(model.state_dict(), 'models/'+model_save)
+

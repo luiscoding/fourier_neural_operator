@@ -19,7 +19,7 @@ sol = zeros(nsize,s,s);
 for t=1:nsize
     
     %Generate random coefficients from N(0,C)
-    norm_a = GRF(alpha, tau, s,t);
+    norm_a = GRF(alpha, tau, s,t+1000);
 
     %Exponentiate it, so that a(x) > 0
     %Now a ~ Lognormal(0, C)
@@ -42,7 +42,7 @@ for t=1:nsize
     
 end
 
-save('output12_4_test_300','coeff','sol')
+save('../../data/output12_4_test_300','coeff','sol')
 
 %Plot coefficients and solutions
 % subplot(2,2,1)

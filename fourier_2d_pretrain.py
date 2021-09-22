@@ -129,7 +129,7 @@ class FNO2d(nn.Module):
         x = F.gelu(x)
         x = self.fc2(x)
         return x
-    
+
     def get_grid(self, shape, device):
         batchsize, size_x, size_y = shape[0], shape[1], shape[2]
         gridx = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
@@ -143,11 +143,10 @@ class FNO2d(nn.Module):
 ################################################################
 TRAIN_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
 #TEST_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth2.mat'
-# TEST_TRAIN_PATH = 'data/output12_6_train.mat'
 TEST_PATH = 'data/output12_6_test.mat'
 
 ntrain = 1000
-ntest =100
+ntest = 80
 
 
 batch_size = 20
@@ -172,15 +171,15 @@ x_train = reader.read_field('coeff')[:ntrain,::r,::r][:,:s,:s]
 y_train = reader.read_field('sol')[:ntrain,::r,::r][:,:s,:s]
 
 reader.load_file(TEST_PATH)
-x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
-y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
+x_test = reader.read_field('coeff')[ntrain:ntrain+ntest,::r,::r][:,:s,:s]
+y_test = reader.read_field('sol')[ntrain:ntrain+ntest,::r,::r][:,:s,:s]
 
 x_normalizer = UnitGaussianNormalizer(x_test)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
 
-# y_normalizer = UnitGaussianNormalizer(y_test)
-# y_train = y_normalizer.encode(y_train)
+y_normalizer = UnitGaussianNormalizer(y_train)
+y_train = y_normalizer.encode(y_train)
 
 x_train = x_train.reshape(ntrain,s,s,1)
 x_test = x_test.reshape(ntest,s,s,1)
@@ -193,32 +192,33 @@ test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test,
 ################################################################
 model = FNO2d(modes, modes, width).cuda()
 print(count_params(model))
-#model.load_state_dict(torch.load('models/12_3.model'))
-#model.cuda()
-optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+
+model.load_state_dict(torch.load('models/12_3.model'))
+model.cuda()
+#
+#
+optimizer = Adam([{'params': model.fc2.parameters()}], lr= learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
 myloss = LpLoss(size_average=False)
-model_save ='12_3_with_norm_a_test.model'
-#y_normalizer.cuda()
-for ep in range(epochs):
+y_normalizer.cuda()
+for ep in range(1):
     model.train()
     t1 = default_timer()
     train_l2 = 0
-
     for x, y in train_loader:
-        x, y = x.cuda(), y.cuda()
+         x, y = x.cuda(), y.cuda()
+         optimizer.zero_grad()
+         out = model(x).reshape(batch_size, s, s)
+         out = y_normalizer.decode(out)
+         y = y_normalizer.decode(y)
 
-        optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s, s)
-        # out = y_normalizer.decode(out)
-        # y = y_normalizer.decode(y)
-    #
-        loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
-        loss.backward()
-    #
-        optimizer.step()
-        train_l2 += loss.item()
+         loss = myloss(out.view(batch_size,-1), y.view(batch_size,-1))
+         loss.backward()
+
+         optimizer.step()
+         train_l2 += loss.item()
+
     scheduler.step()
 
     model.eval()
@@ -226,16 +226,14 @@ for ep in range(epochs):
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
-
             out = model(x).reshape(batch_size, s, s)
-            # out = y_normalizer.decode(out)
+            out = y_normalizer.decode(out)
 
             test_l2 += myloss(out.view(batch_size,-1), y.view(batch_size,-1)).item()
-
+        savemat(TEST_PATH+"_pretrain.mat", {"sol_learn": out.detach().cpu().numpy(),'sol_ground': y.view(batch_size,s,s).detach().cpu().numpy()})
     train_l2/= ntrain
     test_l2 /= ntest
 
     t2 = default_timer()
     print(ep, t2-t1, train_l2, test_l2)
-savemat(TEST_PATH+'_'+model_save+".mat", {"sol_learn": out.detach().cpu().numpy(),'sol_ground': y.view(batch_size,s,s).detach().cpu().numpy()})
-torch.save(model.state_dict(), 'models/'+model_save)
+
