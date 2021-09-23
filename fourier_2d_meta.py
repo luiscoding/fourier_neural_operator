@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy.io import savemat
 from torch.nn.parameter import Parameter
 
 import matplotlib.pyplot as plt
@@ -142,14 +143,14 @@ class FNO2d(nn.Module):
 ################################################################
 TRAIN_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
 #TEST_PATH = 'data/Darcy_421/piececonst_r421_N1024_smooth2.mat'
-#TRAIN_PATH = 'data/output12_6_train.mat'
-TEST_PATH = 'data/output12_6_test.mat'
+
+TEST_PATH = 'data/output1_7_test_10.mat'
 
 ntrain = 1000
-ntest = 100
+ntest = 10
 
 
-batch_size = 20
+batch_size = 10
 learning_rate = 0.001
 
 epochs = 500
@@ -174,7 +175,9 @@ reader.load_file(TEST_PATH)
 x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
 y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
 
-x_normalizer = UnitGaussianNormalizer(x_test)
+
+
+x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
 
@@ -199,7 +202,7 @@ model.cuda()
 
 myloss = LpLoss(size_average=False)
 y_normalizer.cuda()
-for ep in range(1):
+for ep in range(2):
     #model.train()
     t1 = default_timer()
     train_l2 = 0
@@ -235,4 +238,5 @@ for ep in range(1):
     #
     t2 = default_timer()
     print(ep, t2-t1, train_l2, test_l2)
+savemat(TEST_PATH+"_with_norm.mat", {"sol_learn": out.detach().cpu().numpy(),'sol_ground': y.view(batch_size,s,s).detach().cpu().numpy()})
 #torch.save(model.state_dict(), 'models/12_3_norm.model')
