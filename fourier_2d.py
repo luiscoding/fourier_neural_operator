@@ -153,7 +153,7 @@ ntest =100
 batch_size = 20
 learning_rate = 0.001
 
-epochs = 500
+epochs = 1000
 step_size = 100
 gamma = 0.5
 
@@ -175,9 +175,9 @@ reader.load_file(TEST_PATH)
 x_test = reader.read_field('coeff')[:ntest,::r,::r][:,:s,:s]
 y_test = reader.read_field('sol')[:ntest,::r,::r][:,:s,:s]
 
-x_normalizer = UnitGaussianNormalizer(x_train)
-x_train = x_normalizer.encode(x_train)
-x_test = x_normalizer.encode(x_test)
+#x_normalizer = UnitGaussianNormalizer(x_test)
+#x_train = x_normalizer.encode(x_train)
+#x_test = x_normalizer.encode(x_test)
 
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
@@ -193,13 +193,13 @@ test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test,
 ################################################################
 model = FNO2d(modes, modes, width).cuda()
 print(count_params(model))
-#model.load_state_dict(torch.load('models/12_3.model'))
+#model.load_state_dict(torch.load('models/'+'12_3_0.2_norm_test.model'))
 #model.cuda()
 optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
 myloss = LpLoss(size_average=False)
-model_save ='12_3_with_norm_both_train.model'
+model_save ='12_3_0.2_norm_u_train.model'
 y_normalizer.cuda()
 for ep in range(epochs):
     model.train()
