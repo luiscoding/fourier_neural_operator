@@ -12,6 +12,7 @@ from random_fields import GaussianRF
 from timeit import default_timer
 
 import scipy.io
+print(torch.__version__)
 
 #w0: initial vorticity
 #f: forcing term
@@ -31,10 +32,10 @@ def navier_stokes_2d(w0, f, visc, T, delta_t=1e-4, record_steps=1):
     steps = math.ceil(T/delta_t)
 
     #Initial vorticity to Fourier space
-    w_h = torch.rfft(w0, 2, normalized=False, onesided=False)
+    w_h = torch.fft.fft(w0, 2)
 
     #Forcing to Fourier space
-    f_h = torch.rfft(f, 2, normalized=False, onesided=False)
+    f_h = torch.fft.fft(f, 2)
 
     #If same forcing for the whole batch
     if len(f_h.size()) < len(w_h.size()):
@@ -126,11 +127,11 @@ def navier_stokes_2d(w0, f, visc, T, delta_t=1e-4, record_steps=1):
 device = torch.device('cuda')
 
 #Resolution
-s = 256
+s = 64
 sub = 1
 
 #Number of solutions to generate
-N = 20
+N = 200
 
 #Set up 2d GRF with covariance parameters
 GRF = GaussianRF(2, s, alpha=2.5, tau=7, device=device)
@@ -143,7 +144,7 @@ X,Y = torch.meshgrid(t, t)
 f = 0.1*(torch.sin(2*math.pi*(X + Y)) + torch.cos(2*math.pi*(X + Y)))
 
 #Number of snapshots from solution
-record_steps = 200
+record_steps = 20
 
 #Inputs
 a = torch.zeros(N, s, s)
@@ -163,7 +164,7 @@ for j in range(N//bsize):
     w0 = GRF.sample(bsize)
 
     #Solve NS
-    sol, sol_t = navier_stokes_2d(w0, f, 1e-3, 50.0, 1e-4, record_steps)
+    sol, sol_t = navier_stokes_2d(w0, f, 1e-4, 30.0, 1e-4, record_steps)
 
     a[c:(c+bsize),...] = w0
     u[c:(c+bsize),...] = sol
@@ -172,4 +173,4 @@ for j in range(N//bsize):
     t1 = default_timer()
     print(j, c, t1-t0)
 
-scipy.io.savemat('ns_data.mat', mdict={'a': a.cpu().numpy(), 'u': u.cpu().numpy(), 't': sol_t.cpu().numpy()})
+scipy.io.savemat('../../data/Navier/ns_V1e-4_N200_T30.mat', mdict={'a': a.cpu().numpy(), 'u': u.cpu().numpy(), 't': sol_t.cpu().numpy()})

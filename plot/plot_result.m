@@ -1,16 +1,18 @@
 %Number of grid points on [0,1]^2 
 %i.e. uniform mesh with step h=1/(s-1)
 
-sample_num = 2;
+sample_num = 3;
 
 %input_files = strings([1,3]);
 input_files_A = {
     '../data/Darcy_1_7_0.5/output1_7_test_100.mat' ,  '../results/train_12_3_test_1_7/12_3_with_u_norm_test_model.mat', '12-3-u-norm-test';
     
-   '../data/Darcy_1_7_0.5/output1_7_test_100.mat' , '../results/train_12_3_test_1_7/last_layer/12_3_with_u_norm_test_model_train_20.mat', '12-3-u-norm-test_last_layer';
+   %'../data/Darcy_1_7_0.5/output1_7_test_100.mat' , '../results/train_12_3_test_1_7/last_layer/12_3_with_u_norm_test_model_train_20.mat', '12-3-u-norm-test_last_layer';
    
    '../data/Darcy_1_7_0.5/output1_7_test_100.mat' , '../results/train_12_3_test_1_7/last_layer/12_3_with_u_norm_test_model_train_1000.mat', '12-3-u-norm-test_last_layer_1000';
-};
+
+      '../data/Darcy_1_7_0.5/output1_7_test_100.mat' , '../results/train_mixed_test_1_7/mixed_with_norm_train_model.mat', 'mixed-norm';
+   };
 
 input_files = string(input_files_A);
 disp(input_files(1,3));

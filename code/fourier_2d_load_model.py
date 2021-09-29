@@ -148,12 +148,12 @@ class FNO2d(nn.Module):
 
 #TRAIN_PATH = '../data/Darcy_1_7_0.5/output1_7_train.mat'
 TRAIN_PATH = '../data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
-TEST_PATH = '../data/Darcy_1_7_0.5/output1_7_test_100.mat'
+TEST_PATH = '../data/Darcy_test/output1_24_test_100.mat'
 
-train_ratio = "12_3"
-test_ratio = "1_7"
+train_ratio = "mixed"
+test_ratio = "1_24"
 
-model_name = train_ratio+'_with_a_norm_test_model'
+model_name = train_ratio+'_with_norm_train_model'
 
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/load_model_'+train_ratio+'/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name

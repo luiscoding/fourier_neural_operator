@@ -152,11 +152,13 @@ class FNO2d(nn.Module):
 # configs
 ################################################################
 
-TRAIN_PATH = 'data/ns_data_V100_N1000_T50_1.mat'
-TEST_PATH = 'data/ns_data_V100_N1000_T50_2.mat'
+#TRAIN_PATH = 'data/ns_data_V1e-3_N5000_T50_1.mat'
+#TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
+TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
+TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
 ntrain = 1000
-ntest = 200
+ntest = 20
 
 modes = 12
 width = 20
@@ -192,6 +194,7 @@ train_a = reader.read_field('u')[:ntrain,::sub,::sub,:T_in]
 train_u = reader.read_field('u')[:ntrain,::sub,::sub,T_in:T+T_in]
 
 reader = MatReader(TEST_PATH)
+sub = 4
 test_a = reader.read_field('u')[-ntest:,::sub,::sub,:T_in]
 test_u = reader.read_field('u')[-ntest:,::sub,::sub,T_in:T+T_in]
 
@@ -293,7 +296,7 @@ for ep in range(epochs):
 #         test_l2 += myloss(out.view(1, -1), y.view(1, -1)).item()
 #         print(index, test_l2)
 #         index = index + 1
-
+#
 # scipy.io.savemat('pred/'+path+'.mat', mdict={'pred': pred.cpu().numpy()})
 
 
