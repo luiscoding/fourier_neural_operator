@@ -6,6 +6,7 @@ which uses a recurrent structure to propagates in time.
 
 
 import torch
+import os
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
