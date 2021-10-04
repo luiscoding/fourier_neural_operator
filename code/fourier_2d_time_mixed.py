@@ -177,7 +177,7 @@ def read_train_data(input_dir,ntrain):
 
 # TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
 TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
-ntrain = 1000
+ntrain = 3000
 ntest = 20
 
 modes = 12
