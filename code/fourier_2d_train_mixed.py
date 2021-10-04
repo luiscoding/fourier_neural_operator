@@ -177,7 +177,7 @@ model_name = train_ratio + '_no_norm_model'
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
-ntrain = 9000
+ntrain = 2000
 ntest = 100
 
 batch_size = 20
