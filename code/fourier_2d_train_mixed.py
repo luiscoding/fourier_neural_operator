@@ -174,8 +174,8 @@ test_ratio = "1_7"
 
 model_name = train_ratio + '_no_norm_model'
 
-RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '.mat'
-MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
+RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '_1_8_1_10.mat'
+MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name+'_1_8_1_10'
 
 ntrain = 2000
 ntest = 100
