@@ -177,7 +177,7 @@ def read_train_data(input_dir,ntrain):
 
 # TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
 TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
-ntrain = 300
+ntrain = 30
 ntest = 20
 
 modes = 12
@@ -211,7 +211,7 @@ step = 1
 
 train_dir = '../data/Navier/Navier_meta'
 
-train_a, train_u = read_train_data(train_dir, 100)
+train_a, train_u = read_train_data(train_dir, 10)
 
 reader = MatReader(TEST_PATH)
 T_in = 10
@@ -301,7 +301,7 @@ for ep in range(epochs):
     scheduler.step()
     print(ep, t2 - t1, train_l2_step / ntrain / (T / step), train_l2_full / ntrain, test_l2_step / ntest / (T / step),
           test_l2_full / ntest)
-torch.save(model, path_model)
+# torch.save(model, path_model)
 
 # pred = torch.zeros(test_u.shape)
 # index = 0
