@@ -154,15 +154,15 @@ TEST_PATH = '../data/Darcy/Darcy_1_7_0.5/output1_7_test_100.mat'
 train_ratio = "mixed"
 test_ratio = "1_7"
 # input
-model_name = train_ratio+'_no_norm_model_1_10_5_10'
+model_name = train_ratio+'_no_norm_model_5_8_5_10'
 LOAD_MODEL = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
 # output filename
-RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/last_layer/' + model_name + '_train_1000' \
+RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/last_layer/' + model_name + '_train_20' \
                                                                                                         '.mat '
-MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/last_layer/' + model_name+'_train_1000'
+MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/last_layer/' + model_name+'_train_20'
 
-ntrain = 1000
+ntrain = 20
 ntest = 100
 
 batch_size = 20
