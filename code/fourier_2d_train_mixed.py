@@ -148,7 +148,7 @@ def read_train_data(input_dir,ntrain):
     x_train = []
     y_train = []
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mat") and( '5_10' in filename ) :
+        if filename.endswith(".mat"):
             FILE_PATH = os.path.join(input_dir, filename)
             reader = MatReader(FILE_PATH)
             x_train.append(reader.read_field('coeff')[:ntrain])
@@ -165,7 +165,7 @@ def read_train_data(input_dir,ntrain):
 
 train_dir = '../data/Darcy/Meta_data_85'
 
-x_train, y_train = read_train_data(train_dir, 1000)
+x_train, y_train = read_train_data(train_dir, 100)
 
 TEST_PATH = '../data/Darcy/Darcy_1_7_0.5/output1_7_test_100.mat'
 
@@ -174,10 +174,10 @@ test_ratio = "1_7"
 
 model_name = train_ratio + '_no_norm_model'
 
-RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '_5_10.mat'
-MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name+'_5_10'
+RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '_100_shot.mat'
+MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name+'_100_shot'
 
-ntrain = 1000
+ntrain =900
 ntest = 100
 
 batch_size = 20
