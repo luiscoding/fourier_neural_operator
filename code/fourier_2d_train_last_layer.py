@@ -191,12 +191,12 @@ x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
 y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
 
-x_train_test = torch.cat((x_train, x_test), 0)
+#x_train_test = torch.cat((x_train, x_test), 0)
 # x_normalizer = UnitGaussianNormalizer(x_train_test)
 # x_train = x_normalizer.encode(x_train)
 # x_test = x_normalizer.encode(x_test)
 #
-y_train_test = torch.cat((y_train, y_test), 0)
+#y_train_test = torch.cat((y_train, y_test), 0)
 # y_normalizer = UnitGaussianNormalizer(y_train_test)
 # y_train = y_normalizer.encode(y_train)
 
