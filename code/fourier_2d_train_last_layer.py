@@ -151,10 +151,10 @@ TRAIN_PATH = '../data/Darcy_1_7_0.5/output1_7_train.mat'
 TEST_PATH = '../data/Darcy_1_7_0.5/output1_7_test_100.mat'
 
 
-train_ratio = "12_3"
+train_ratio = "mixed"
 test_ratio = "1_7"
 # input
-model_name = train_ratio+'_with_norm_train_test_model'
+model_name = train_ratio+'_no_norm_model_1_10_5_10'
 LOAD_MODEL = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
 # output filename
