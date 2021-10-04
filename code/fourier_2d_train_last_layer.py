@@ -146,9 +146,9 @@ class FNO2d(nn.Module):
 # configs
 ################################################################
 
-TRAIN_PATH = '../data/Darcy_1_7_0.5/output1_7_train.mat'
+TRAIN_PATH = '../data/Darcy/Darcy_1_7_0.5/output1_7_train.mat'
 #TRAIN_PATH = '../data/Darcy_421/piececonst_r421_N1024_smooth1.mat'
-TEST_PATH = '../data/Darcy_1_7_0.5/output1_7_test_100.mat'
+TEST_PATH = '../data/Darcy/Darcy_1_7_0.5/output1_7_test_100.mat'
 
 
 train_ratio = "mixed"
