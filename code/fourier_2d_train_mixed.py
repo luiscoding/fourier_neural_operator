@@ -163,7 +163,7 @@ def read_train_data(input_dir,ntrain):
 # configs
 ################################################################
 
-train_dir = '../data/Meta_data_85'
+train_dir = '../data/Darcy/Meta_data_85'
 
 x_train, y_train = read_train_data(train_dir, 1000)
 
