@@ -177,7 +177,7 @@ def read_train_data(input_dir,ntrain):
 
 # TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
 TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
-ntrain = 300
+ntrain = 30
 ntest = 20
 
 modes = 12
@@ -193,7 +193,7 @@ scheduler_gamma = 0.5
 
 print(epochs, learning_rate, scheduler_step, scheduler_gamma)
 
-path = 'mixed_ns_fourier_2d_rnn_V10000_T20_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+path = 'mixed_10_shot_ns_fourier_2d_rnn_V10000_T20_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
 path_model = 'model/'+path
 path_train_err = 'results/'+path+'train.txt'
 path_test_err = 'results/'+path+'test.txt'
@@ -211,7 +211,7 @@ step = 1
 
 train_dir = '../data/Navier/Navier_meta'
 
-train_a, train_u = read_train_data(train_dir, 100)
+train_a, train_u = read_train_data(train_dir, 10)
 
 reader = MatReader(TEST_PATH)
 sub = 4
