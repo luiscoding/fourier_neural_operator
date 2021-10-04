@@ -222,8 +222,8 @@ test_u = reader.read_field('u')[-ntest:,::sub,::sub,T_in:T+T_in]
 
 print(train_u.shape)
 print(test_u.shape)
-assert (S == train_u.shape[-2])
-assert (T == train_u.shape[-1])
+# assert (S == train_u.shape[-2])
+# assert (T == train_u.shape[-1])
 
 train_a = train_a.reshape(ntrain,S,S,T_in)
 test_a = test_a.reshape(ntest,S,S,T_in)
