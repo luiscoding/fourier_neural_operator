@@ -148,7 +148,7 @@ def read_train_data(input_dir,ntrain):
     x_train = []
     y_train = []
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mat"):
+        if filename.endswith(".mat") and( '1_8' in filename or '1_10' in filename) :
             FILE_PATH = os.path.join(input_dir, filename)
             reader = MatReader(FILE_PATH)
             x_train.append(reader.read_field('coeff')[:ntrain])
