@@ -192,13 +192,13 @@ y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
 
 x_train_test = torch.cat((x_train, x_test), 0)
-x_normalizer = UnitGaussianNormalizer(x_train_test)
-x_train = x_normalizer.encode(x_train)
-x_test = x_normalizer.encode(x_test)
+# x_normalizer = UnitGaussianNormalizer(x_train_test)
+# x_train = x_normalizer.encode(x_train)
+# x_test = x_normalizer.encode(x_test)
 #
 y_train_test = torch.cat((y_train, y_test), 0)
-y_normalizer = UnitGaussianNormalizer(y_train_test)
-y_train = y_normalizer.encode(y_train)
+# y_normalizer = UnitGaussianNormalizer(y_train_test)
+# y_train = y_normalizer.encode(y_train)
 
 # x_normalizer = UnitGaussianNormalizer(x_test)
 # x_train = x_normalizer.encode(x_train)
@@ -206,7 +206,7 @@ y_train = y_normalizer.encode(y_train)
 #
 # y_normalizer = UnitGaussianNormalizer(y_test)
 # y_train = y_normalizer.encode(y_train)
-y_normalizer.cuda()
+# y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
@@ -239,8 +239,8 @@ for ep in range(epochs):
 
         optimizer.zero_grad()
         out = model(x).reshape(batch_size, s, s)
-        out = y_normalizer.decode(out)
-        y = y_normalizer.decode(y)
+        # out = y_normalizer.decode(out)
+        # y = y_normalizer.decode(y)
         #
         loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
         loss.backward()
@@ -256,7 +256,7 @@ for ep in range(epochs):
             x, y = x.cuda(), y.cuda()
 
             out = model(x).reshape(batch_size, s, s)
-            out = y_normalizer.decode(out)
+            # out = y_normalizer.decode(out)
 
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
 
