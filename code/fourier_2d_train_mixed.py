@@ -167,7 +167,7 @@ train_dir = '../data/Darcy/Meta_data_85'
 
 x_train, y_train = read_train_data(train_dir, 1000)
 
-TEST_PATH = '../data/Darcy_1_7_0.5/output1_7_test_100.mat'
+TEST_PATH = '../data/Darcy/Darcy_1_7_0.5/output1_7_test_100.mat'
 
 train_ratio = "mixed"
 test_ratio = "1_7"
