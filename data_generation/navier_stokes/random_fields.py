@@ -59,7 +59,7 @@ class GaussianRF(object):
         coeff[...,0] = self.sqrt_eig*coeff[...,0]
         coeff[...,1] = self.sqrt_eig*coeff[...,1]
 
-        u = torch.fft.ifft(coeff, self.dim)
+        u = torch.ifft(coeff, self.dim)
         u = u[...,0]
 
         return u
