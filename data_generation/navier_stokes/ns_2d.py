@@ -70,7 +70,7 @@ def navier_stokes_2d(w0, f, visc, T, delta_t=1e-4, record_steps=1):
         torch.logical_and(torch.abs(k_y) <= (2.0 / 3.0) * k_max, torch.abs(k_x) <= (2.0 / 3.0) * k_max).float(), 0)
 
     # Saving solution and time
-    sol = torch.zeros(w0.size(), record_steps, device=w0.device)
+    sol = torch.zeros(*w0.size(), record_steps, device=w0.device)
     sol_t = torch.zeros(record_steps, device=w0.device)
 
     # Record counter
