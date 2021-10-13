@@ -155,7 +155,7 @@ class FNO2d(nn.Module):
 #TRAIN_PATH = 'data/ns_data_V1e-3_N5000_T50_1.mat'
 #TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
-TRAIN_PATH = '../data/Navier/ns_V1e-4_N1200_T50.mat'
+TRAIN_PATH = '../data/Navier/ns_V1e-04_N1200_T50.mat'
 
 
 TEST_PATH = '../data/Navier/ns_data_V1e-3_N5000_T50.mat'
