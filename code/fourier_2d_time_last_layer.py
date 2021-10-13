@@ -155,11 +155,11 @@ class FNO2d(nn.Module):
 #TRAIN_PATH = 'data/ns_data_V1e-3_N5000_T50_1.mat'
 #TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
-TRAIN_PATH = '../data/Navier_meta/ns_V1e-3_N5000_T50.mat'
+TEST_PATH = '../data/Navier_meta_T50/ns_V1e-3_N5000_T50.mat'
 
 
-TEST_PATH = '../data/Navier/ns_V1e-03_N5000_T50.mat'
-ntrain = 1000
+
+ntrain = 100
 ntest = 200
 
 modes = 12
@@ -168,18 +168,16 @@ width = 20
 batch_size = 20
 batch_size2 = batch_size
 
-epochs = 500
+epochs = 200
 learning_rate = 0.001
 scheduler_step = 100
 scheduler_gamma = 0.5
 
 print(epochs, learning_rate, scheduler_step, scheduler_gamma)
 
-path = 'ns_fourier_2d_v1e-4_V1000_T30_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
-path_model = 'model/'+path
-path_train_err = 'results/'+path+'train.txt'
-path_test_err = 'results/'+path+'test.txt'
-path_image = 'image/'+path
+path = 'mixed_100_shot_e-4_e-5'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+path_model = '../models/ns/last_layer_'+path
+
 
 sub = 1
 S = 64
@@ -191,11 +189,11 @@ step = 1
 # load data
 ################################################################
 
-reader = MatReader(TRAIN_PATH)
+reader = MatReader(TEST_PATH)
 train_a = reader.read_field('u')[:ntrain,::sub,::sub,:T_in]
 train_u = reader.read_field('u')[:ntrain,::sub,::sub,T_in:T+T_in]
 
-reader = MatReader(TRAIN_PATH)
+reader = MatReader(TEST_PATH)
 sub = 1
 test_a = reader.read_field('u')[-ntest:,::sub,::sub,:T_in]
 test_u = reader.read_field('u')[-ntest:,::sub,::sub,T_in:T+T_in]
@@ -216,11 +214,12 @@ test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(test_a,
 # training and evaluation
 ################################################################
 
-model = FNO2d(modes, modes, width).cuda()
-# model = torch.load('model/ns_fourier_V100_N1000_ep100_m8_w20')
+#model = FNO2d(modes, modes, width).cuda()
+
+model = torch.load('../models/ns/'+path).cuda()
 
 print(count_params(model))
-optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+optimizer = Adam([{'params': model.fc2.parameters()}], lr= learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step, gamma=scheduler_gamma)
 
 myloss = LpLoss(size_average=False)

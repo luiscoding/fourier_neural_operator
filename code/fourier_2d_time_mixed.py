@@ -154,12 +154,12 @@ class FNO2d(nn.Module):
 def read_train_data(input_dir,ntrain):
     sub = 1
     T_in = 10
-    T = 10
+    T = 20
     count = 0
     train_a = []
     train_u = []
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mat") :
+        if filename.endswith(".mat") and ( "V1e-03" in filename or "V1e-05" in filename):
             FILE_PATH = os.path.join(input_dir, filename)
             reader = MatReader(FILE_PATH)
             train_a.append(reader.read_field('u')[:ntrain, ::sub, ::sub, :T_in])
@@ -176,9 +176,9 @@ def read_train_data(input_dir,ntrain):
 #TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
 # TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
-TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
-ntrain = 300
-ntest = 20
+TEST_PATH = '../data/Navier_meta_T50/ns_V1e-04_N1200_T50.mat'
+ntrain = 200
+ntest = 200
 
 modes = 12
 width = 20
@@ -193,8 +193,8 @@ scheduler_gamma = 0.5
 
 print(epochs, learning_rate, scheduler_step, scheduler_gamma)
 
-path = 'mixed_10_shot_ns_fourier_2d_rnn_V10000_T20_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
-path_model = 'model/'+path
+path = '../models/ns/mixed_100_shot_e-3_e-5'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+path_model = path
 path_train_err = 'results/'+path+'train.txt'
 path_test_err = 'results/'+path+'test.txt'
 path_image = 'image/'+path
@@ -202,21 +202,21 @@ path_image = 'image/'+path
 sub = 1
 S = 64
 T_in = 10
-T = 10
+T = 20
 step = 1
 
 ################################################################
 # load data
 ################################################################
 
-train_dir = '../data/Navier/Navier_meta'
+train_dir = '../data/Navier_meta_T50'
 
 train_a, train_u = read_train_data(train_dir, 100)
 
 reader = MatReader(TEST_PATH)
 T_in = 10
-T = 40
-sub = 4
+T = 20
+sub = 1
 test_a = reader.read_field('u')[-ntest:,::sub,::sub,:T_in]
 test_u = reader.read_field('u')[-ntest:,::sub,::sub,T_in:T+T_in]
 
@@ -225,8 +225,8 @@ print(test_u.shape)
 # assert (S == train_u.shape[-2])
 # assert (T == train_u.shape[-1])
 
-train_a = train_a.reshape(ntrain,S,S,T_in)
-test_a = test_a.reshape(ntest,S,S,T_in)
+#train_a = train_a.reshape(ntrain,S,S,T_in)
+#test_a = test_a.reshape(ntest,S,S,T_in)
 
 train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(train_a, train_u), batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(test_a, test_u), batch_size=batch_size, shuffle=False)
