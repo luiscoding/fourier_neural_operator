@@ -155,10 +155,12 @@ class FNO2d(nn.Module):
 #TRAIN_PATH = 'data/ns_data_V1e-3_N5000_T50_1.mat'
 #TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
-TRAIN_PATH = '../data/Navier/ns_V1e-4_N10000_T30.mat'
-TEST_PATH = '../data/Navier/ns_data_V1e-4_N20_T50_R256test.mat'
+TRAIN_PATH = '../data/Navier/ns_V1e-4_N1200_T50.mat'
+
+
+TEST_PATH = '../data/Navier/ns_data_V1e-3_N5000_T50.mat'
 ntrain = 1000
-ntest = 20
+ntest = 200
 
 modes = 12
 width = 20
@@ -173,7 +175,7 @@ scheduler_gamma = 0.5
 
 print(epochs, learning_rate, scheduler_step, scheduler_gamma)
 
-path = 'ns_fourier_2d_rnn_V10000_T20_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+path = 'ns_fourier_2d_v1e-4_V1000_T30_N'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
 path_model = 'model/'+path
 path_train_err = 'results/'+path+'train.txt'
 path_test_err = 'results/'+path+'test.txt'
@@ -182,7 +184,7 @@ path_image = 'image/'+path
 sub = 1
 S = 64
 T_in = 10
-T = 10
+T = 20
 step = 1
 
 ################################################################
@@ -193,8 +195,8 @@ reader = MatReader(TRAIN_PATH)
 train_a = reader.read_field('u')[:ntrain,::sub,::sub,:T_in]
 train_u = reader.read_field('u')[:ntrain,::sub,::sub,T_in:T+T_in]
 
-reader = MatReader(TEST_PATH)
-sub = 4
+reader = MatReader(TRAIN_PATH)
+sub = 1
 test_a = reader.read_field('u')[-ntest:,::sub,::sub,:T_in]
 test_u = reader.read_field('u')[-ntest:,::sub,::sub,T_in:T+T_in]
 
@@ -279,7 +281,7 @@ for ep in range(epochs):
     scheduler.step()
     print(ep, t2 - t1, train_l2_step / ntrain / (T / step), train_l2_full / ntrain, test_l2_step / ntest / (T / step),
           test_l2_full / ntest)
-# torch.save(model, path_model)
+torch.save(model, path_model)
 
 # pred = torch.zeros(test_u.shape)
 # index = 0
