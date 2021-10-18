@@ -240,6 +240,7 @@ for ep in range(epochs):
     model.train()
     t1 = default_timer()
     inner_losses  = []
+    train_l2 = 0
     for task_idx in range(task_num):
         optimizer = Adam([{'params': model.fc2[task_idx].parameters()}], lr= learning_rate, weight_decay=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
