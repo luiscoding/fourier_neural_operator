@@ -258,7 +258,7 @@ for ep in range(epochs):
     inner_losses  = []
     train_l2 = 0
     for i in range(500):
-        loss = torch.tensor([0.0], requires_grad=True)
+        losses =[]
         for task_idx in range(task_num):
             x, y = next(iter(train_loader[task_idx]))
             x, y = x.cuda(), y.cuda()
@@ -266,11 +266,10 @@ for ep in range(epochs):
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
-            loss += myloss(out.view(batch_size, -1), y.view(batch_size, -1))
-        inner_losses.append(loss)
-        loss.backward()
+            losses.append(myloss(out.view(batch_size, -1), y.view(batch_size, -1)))
+        sum(losses).backward()
         optimizer.step()
-        train_l2 += loss.item()
+        train_l2 += sum(losses).item()
     scheduler.step()
 
     model.eval()
