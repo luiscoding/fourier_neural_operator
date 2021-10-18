@@ -258,6 +258,7 @@ for ep in range(epochs):
     inner_losses  = []
     train_l2 = 0
     for i in range(500):
+        loss = torch.tensor([0.0], requires_grad=True)
         for task_idx in range(task_num):
             x, y = next(iter(train_loader[task_idx]))
             x, y = x.cuda(), y.cuda()
