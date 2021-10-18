@@ -239,7 +239,7 @@ scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_meta, step_size=step_siz
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
-    train_l2 = 0
+    inner_losses  = []
     for task_idx in range(task_num):
         optimizer = Adam([{'params': model.fc2[task_idx].parameters()}], lr= learning_rate, weight_decay=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
@@ -249,15 +249,18 @@ for ep in range(epochs):
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
+
             loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
+            inner_losses.append(loss)
             loss.backward()
             optimizer.step()
             train_l2 += loss.item()
+
     scheduler.step()
     for p in model.fc2.parameters():
         p.requires_grad = False
     optimizer_meta.zero_grad()
-    train_l2.backward()
+    torch.sum(inner_losses).backward()
     optimizer_meta.step()
 
     model.eval()
