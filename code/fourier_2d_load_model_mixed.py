@@ -160,13 +160,13 @@ def read_train_data(input_dir,ntrain):
 # configs
 ################################################################
 
-TEST_PATH = '../data/Darcy_test/output6_7_test_100.mat'
+TEST_PATH = '../data/Darcy/Darcy_test/output1_24_test_100.mat'
 
 train_ratio = "mixed"
-train_dir = '../data/Meta_data_85'
+train_dir = '../data/Darcy/Meta_data_85'
 
 x_train, y_train = read_train_data(train_dir, 1000)
-test_ratio = "6_7"
+test_ratio = "1_24"
 
 model_name = train_ratio+'_with_norm_train_model'
 

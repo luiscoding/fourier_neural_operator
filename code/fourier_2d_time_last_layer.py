@@ -155,11 +155,11 @@ class FNO2d(nn.Module):
 #TRAIN_PATH = 'data/ns_data_V1e-3_N5000_T50_1.mat'
 #TEST_PATH = 'data/ns_data_V1e-4_N10000_T50_2.mat'
 
-TEST_PATH = '../data/Navier_meta_T50/ns_V1e-3_N5000_T50.mat'
+TEST_PATH = '../data/Navier_meta_T50/ns_V1e-03_N5000_T50.mat'
 
 
 
-ntrain = 100
+ntrain = 200
 ntest = 200
 
 modes = 12
@@ -175,14 +175,14 @@ scheduler_gamma = 0.5
 
 print(epochs, learning_rate, scheduler_step, scheduler_gamma)
 
-path = 'mixed_100_shot_e-4_e-5'+str(ntrain)+'_ep' + str(epochs) + '_m' + str(modes) + '_w' + str(width)
+path = 'mixed_100_shot_e-4_e-5'+str(200)+'_ep' + str(500) + '_m' + str(modes) + '_w' + str(width)
 path_model = '../models/ns/last_layer_'+path
 
 
 sub = 1
 S = 64
 T_in = 10
-T = 20
+T = 40
 step = 1
 
 ################################################################

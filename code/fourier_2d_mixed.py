@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from scipy.io import savemat
 from torch.nn.parameter import Parameter
-
+import os
 import matplotlib.pyplot as plt
 
 import operator
@@ -142,23 +142,38 @@ class FNO2d(nn.Module):
         return torch.cat((gridx, gridy), dim=-1).to(device)
 
 
+def read_train_data(input_dir,ntrain):
+    count = 0
+    x_train = []
+    y_train = []
+    for filename in os.listdir(input_dir):
+        if filename.endswith(".mat"):
+            FILE_PATH = os.path.join(input_dir, filename)
+            reader = MatReader(FILE_PATH)
+            x_train.append(reader.read_field('coeff')[:ntrain])
+            y_train.append(reader.read_field('sol')[:ntrain])
+            print("finished " + filename)
+    x_train_mixed = torch.cat([item for item in x_train], 0)
+    y_train_mixed = torch.cat([item for item in y_train], 0)
+    return x_train_mixed, y_train_mixed
 ################################################################
 # configs
 ################################################################
 
-#TRAIN_PATH = '../data/Darcy_1_7_0.5/output1_7_train.mat'
-TRAIN_PATH = '../data/Darcy/Darcy_421/piececonst_r421_N1024_smooth1.mat'
 TEST_PATH = '../data/Darcy/Darcy_test/output1_24_test_100.mat'
 
 train_ratio = "mixed"
+train_dir = '../data/Darcy/Meta_data_85'
+
+x_train, y_train = read_train_data(train_dir, 1000)
 test_ratio = "1_24"
 
 model_name = train_ratio+'_with_norm_train_model'
 
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/load_model_'+train_ratio+'/' + model_name + '.mat'
-MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
+MODEL_PATH = '../models/train_' + train_ratio + '_test_' + '1_7' + '/' + model_name
 
-ntrain = 1000
+ntrain = 9000
 ntest = 100
 
 batch_size = 20
@@ -178,21 +193,21 @@ s = h
 ################################################################
 # load data and data normalization
 ################################################################
-reader = MatReader(TRAIN_PATH)
-x_train = reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
-y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
+reader = MatReader(TEST_PATH)
+#x_train = reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
+#y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
 
 reader.load_file(TEST_PATH)
 x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
 y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
 
-x_normalizer = UnitGaussianNormalizer(x_test)
+x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
 #
-# y_normalizer = UnitGaussianNormalizer(y_train)
-# y_train = y_normalizer.encode(y_train)
-# y_normalizer.cuda()
+y_normalizer = UnitGaussianNormalizer(y_train)
+y_train = y_normalizer.encode(y_train)
+y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
@@ -207,7 +222,7 @@ test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test,
 ################################################################
 model = FNO2d(modes, modes, width).cuda()
 print(count_params(model))
-model.load_state_dict(torch.load(MODEL_PATH))
+# model.load_state_dict(torch.load(MODEL_PATH))
 model.cuda()
 # optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
@@ -225,8 +240,8 @@ for ep in range(epochs):
         #
         # optimizer.zero_grad()
         out = model(x).reshape(batch_size, s, s)
-        # out = y_normalizer.decode(out)
-        # y = y_normalizer.decode(y)
+        out = y_normalizer.decode(out)
+        y = y_normalizer.decode(y)
         #
         loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
         # loss.backward()
@@ -242,7 +257,7 @@ for ep in range(epochs):
             x, y = x.cuda(), y.cuda()
 
             out = model(x).reshape(batch_size, s, s)
-            # out = y_normalizer.decode(out)
+            out = y_normalizer.decode(out)
 
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
 
