@@ -251,6 +251,7 @@ myloss = LpLoss(size_average=False)
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
 optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+optimizer_test =  Adam(model.fc2[task_num].parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
     model.train()
@@ -279,6 +280,7 @@ for ep in range(epochs):
     out = y_normalizer.decode(out)
     test_loss  = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
     test_loss.backward()
+    optimizer_test.step()
 
     model.eval()
     test_l2 = 0.0
