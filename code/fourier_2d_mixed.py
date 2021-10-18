@@ -256,25 +256,20 @@ for ep in range(epochs):
     t1 = default_timer()
     inner_losses  = []
     train_l2 = 0
-
-    for task_idx in range(task_num):
-        for x, y in train_loader[task_idx]:
+    for i in range(500):
+        for task_idx in range(task_num):
+            x, y = next(iter(train_loader[task_idx]))
             x, y = x.cuda(), y.cuda()
             optimizer.zero_grad()
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
-            loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
-            inner_losses.append(loss)
+            loss += myloss(out.view(batch_size, -1), y.view(batch_size, -1))
+        inner_losses.append(loss)
         loss.backward()
         optimizer.step()
         train_l2 += loss.item()
     scheduler.step()
-    # for p in model.fc2.parameters():
-    #     p.requires_grad = False
-    optimizer_meta.zero_grad()
-    torch.Tensor(inner_losses).backward()
-    optimizer_meta.step()
 
     model.eval()
     test_l2 = 0.0
