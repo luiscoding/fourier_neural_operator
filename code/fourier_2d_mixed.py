@@ -98,8 +98,8 @@ class FNO2d(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num)])
-        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num)])
+        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num+1)])
+        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num+1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
@@ -230,8 +230,9 @@ y_normalizer.cuda()
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
 train_loader = []
-train_loader = torch.utils.data.DataLoader(ConcatDataset(torch.utils.data.TensorDataset(x_train_idx,y_train_idx )), batch_size=batch_size,
-                                           shuffle=True)
+for t in range(task_num):
+    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
+                                           shuffle=True))
 
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
                                           shuffle=False)
@@ -249,32 +250,37 @@ myloss = LpLoss(size_average=False)
 
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
-optimizer_meta = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_meta, step_size=step_size, gamma=gamma)
+optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+optimizer_test =  Adam(model.fc2[task_num].parameters(), lr=learning_rate, weight_decay=1e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
     inner_losses  = []
     train_l2 = 0
-
-    for task_idx in range(task_num):
-        for x, y in train_loader[task_idx]:
+    for i in range(50):
+        losses =[]
+        for task_idx in range(task_num):
+            x, y = next(iter(train_loader[task_idx]))
             x, y = x.cuda(), y.cuda()
             optimizer.zero_grad()
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
-            loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
-            inner_losses.append(loss)
-        loss.backward()
+            losses.append(myloss(out.view(batch_size, -1), y.view(batch_size, -1)))
+        sum(losses).backward()
         optimizer.step()
-        train_l2 += loss.item()
+        train_l2 += sum(losses).item()
     scheduler.step()
-    # for p in model.fc2.parameters():
-    #     p.requires_grad = False
-    optimizer_meta.zero_grad()
-    torch.Tensor(inner_losses).backward()
-    optimizer_meta.step()
+
+    # meta test train last layer
+    x,y = next(iter(test_loader))
+    x,y = x.cuda(),y.cuda()
+    out = model(x,task_idx+1).reshape(batch_size, s, s)
+    out = y_normalizer.decode(out)
+    test_loss  = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
+    test_loss.backward()
+    optimizer_test.step()
 
     model.eval()
     test_l2 = 0.0
