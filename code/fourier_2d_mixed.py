@@ -261,7 +261,7 @@ for ep in range(epochs):
     for p in model.fc2.parameters():
         p.requires_grad = False
     optimizer_meta.zero_grad()
-    torch.sum(inner_losses).backward()
+    torch.sum(torch.Tensor(inner_losses)).backward()
     optimizer_meta.step()
 
     model.eval()
