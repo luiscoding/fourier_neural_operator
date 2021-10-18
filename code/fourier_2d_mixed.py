@@ -250,8 +250,8 @@ myloss = LpLoss(size_average=False)
 
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
-optimizer_meta = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_meta, step_size=step_size, gamma=gamma)
+optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer_meta, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
