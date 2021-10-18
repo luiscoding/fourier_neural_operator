@@ -157,6 +157,22 @@ def read_train_data(input_dir,ntrain):
     x_train_mixed = torch.cat([item for item in x_train], 0)
     y_train_mixed = torch.cat([item for item in y_train], 0)
     return x_train_mixed, y_train_mixed
+
+def read_train_data_with_idx(input_dir,ntrain):
+    count = 0
+    x_train = []
+    y_train = []
+    count = 0
+    for filename in os.listdir(input_dir):
+        if filename.endswith(".mat"):
+            FILE_PATH = os.path.join(input_dir, filename)
+            reader = MatReader(FILE_PATH)
+            x_train.append(reader.read_field('coeff')[:ntrain])
+            y_train.append(reader.read_field('sol')[:ntrain])
+            print("finished " + filename)
+    x_train_mixed = torch.cat([item for item in x_train], 0)
+    y_train_mixed = torch.cat([item for item in y_train], 0)
+    return x_train_mixed, y_train_mixed, x_train, y_train
 ################################################################
 # configs
 ################################################################
@@ -166,7 +182,7 @@ TEST_PATH = '../data/Darcy/Darcy_test/output1_24_test_100.mat'
 train_ratio = "mixed"
 train_dir = '../data/Darcy/Meta_data_85'
 
-x_train, y_train = read_train_data(train_dir, 1000)
+x_train, y_train, x_train_idx, y_train_idx = read_train_data_with_idx(train_dir, 1000)
 test_ratio = "1_24"
 
 model_name = train_ratio+'subtask__with_norm_train_model'
@@ -214,9 +230,8 @@ y_normalizer.cuda()
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
 train_loader = []
-for t in range(task_num):
-    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
-                                           shuffle=True))
+train_loader = torch.utils.data.DataLoader(ConcatDataset(torch.utils.data.TensorDataset(x_train_idx,y_train_idx )), batch_size=batch_size,
+                                           shuffle=True)
 
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
                                           shuffle=False)
@@ -241,27 +256,24 @@ for ep in range(epochs):
     t1 = default_timer()
     inner_losses  = []
     train_l2 = 0
+
     for task_idx in range(task_num):
-        optimizer = Adam([{'params': model.fc2[task_idx].parameters()}], lr= learning_rate, weight_decay=1e-4)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
         for x, y in train_loader[task_idx]:
             x, y = x.cuda(), y.cuda()
             optimizer.zero_grad()
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
-
             loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
             inner_losses.append(loss)
-            loss.backward()
-            optimizer.step()
-            train_l2 += loss.item()
-
+        loss.backward()
+        optimizer.step()
+        train_l2 += loss.item()
     scheduler.step()
-    for p in model.fc2.parameters():
-        p.requires_grad = False
+    # for p in model.fc2.parameters():
+    #     p.requires_grad = False
     optimizer_meta.zero_grad()
-    torch.sum(torch.Tensor(inner_losses)).backward()
+    torch.Tensor(inner_losses).backward()
     optimizer_meta.step()
 
     model.eval()
