@@ -230,8 +230,9 @@ y_normalizer.cuda()
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
 train_loader = []
-train_loader = torch.utils.data.DataLoader(ConcatDataset(torch.utils.data.TensorDataset(x_train_idx,y_train_idx )), batch_size=batch_size,
-                                           shuffle=True)
+for t in range(task_num):
+    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
+                                           shuffle=True))
 
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
                                           shuffle=False)
