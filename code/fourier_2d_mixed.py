@@ -66,7 +66,7 @@ class SpectralConv2d(nn.Module):
 
 
 class FNO2d(nn.Module):
-    def __init__(self, modes1, modes2, width):
+    def __init__(self, modes1, modes2, width, task_num):
         super(FNO2d, self).__init__()
 
         """
@@ -85,6 +85,7 @@ class FNO2d(nn.Module):
         self.modes1 = modes1
         self.modes2 = modes2
         self.width = width
+        self.task_num = task_num
         self.padding = 9  # pad the domain if input is non-periodic
         self.fc0 = nn.Linear(3, self.width)  # input channel is 3: (a(x, y), x, y)
 
@@ -97,10 +98,10 @@ class FNO2d(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.Linear(self.width, 128)
-        self.fc2 = nn.Linear(128, 1)
+        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num)])
+        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num)])
 
-    def forward(self, x):
+    def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
@@ -128,9 +129,9 @@ class FNO2d(nn.Module):
 
         x = x[..., :-self.padding, :-self.padding]
         x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
+        x = self.fc1[task_idx](x)
         x = F.gelu(x)
-        x = self.fc2(x)
+        x = self.fc2[task_idx](x)
         return x
 
     def get_grid(self, shape, device):
@@ -168,13 +169,14 @@ train_dir = '../data/Darcy/Meta_data_85'
 x_train, y_train = read_train_data(train_dir, 1000)
 test_ratio = "1_24"
 
-model_name = train_ratio+'_with_norm_train_model'
+model_name = train_ratio+'subtask__with_norm_train_model'
 
-RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/load_model_'+train_ratio+'/' + model_name + '.mat'
+RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/subtask_'+train_ratio+'/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + '1_7' + '/' + model_name
 
 ntrain = 9000
 ntest = 100
+task_num= 9
 
 batch_size = 20
 learning_rate = 0.001
@@ -211,54 +213,60 @@ y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
+train_loader = []
+for t in range(task_num):
+    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
+                                           shuffle=True))
 
-train_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train, y_train), batch_size=batch_size,
-                                           shuffle=True)
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
                                           shuffle=False)
 
 ################################################################
 # training and evaluation
 ################################################################
-model = FNO2d(modes, modes, width).cuda()
+model = FNO2d(modes, modes, width, task_num).cuda()
 print(count_params(model))
 # model.load_state_dict(torch.load(MODEL_PATH))
 model.cuda()
-# optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
 
 myloss = LpLoss(size_average=False)
 
-
+# inner loop update the last layer for each task
+# outer loop update the representation of all tasks
+optimizer_meta = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_meta, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
-    # model.train()
+    model.train()
     t1 = default_timer()
     train_l2 = 0
-
-    for x, y in train_loader:
-        x, y = x.cuda(), y.cuda()
-        #
-        # optimizer.zero_grad()
-        out = model(x).reshape(batch_size, s, s)
-        out = y_normalizer.decode(out)
-        y = y_normalizer.decode(y)
-        #
-        loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
-        # loss.backward()
-        # #
-        # optimizer.step()
-        train_l2 += loss.item()
-    #scheduler.step()
+    for task_idx in range(task_num):
+        optimizer = Adam([{'params': model.fc2[task_idx].parameters()}], lr= learning_rate, weight_decay=1e-4)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+        for x, y in train_loader[task_idx]:
+            x, y = x.cuda(), y.cuda()
+            optimizer.zero_grad()
+            out = model(x, task_idx).reshape(batch_size, s, s)
+            out = y_normalizer.decode(out)
+            y = y_normalizer.decode(y)
+            loss = myloss(out.view(batch_size, -1), y.view(batch_size, -1))
+            loss.backward()
+            optimizer.step()
+            train_l2 += loss.item()
+    scheduler.step()
+    for p in model.fc2.parameters():
+        p.requires_grad = False
+    optimizer_meta.zero_grad()
+    train_l2.backward()
+    optimizer_meta.step()
 
     model.eval()
     test_l2 = 0.0
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
-
-            out = model(x).reshape(batch_size, s, s)
+            out = model(x,task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
-
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
 
     train_l2 /= ntrain
