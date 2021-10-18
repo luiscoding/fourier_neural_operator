@@ -15,7 +15,7 @@ import scipy.io
 
 print(torch.__version__)
 # Viscosity (1/Re)
-visco = 1e-2
+visco = 1e-5
 # Time length
 T = 50
 # Number of solutions to generate
