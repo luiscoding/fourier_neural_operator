@@ -98,8 +98,8 @@ class FNO2d(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num)])
-        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num)])
+        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num+1)])
+        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num+1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
@@ -271,6 +271,14 @@ for ep in range(epochs):
         optimizer.step()
         train_l2 += sum(losses).item()
     scheduler.step()
+
+    # meta test train last layer
+    x,y = next(iter(test_loader))
+    x,y = x.cuda(),y.cuda()
+    out = model(x,task_idx+1).reshape(batch_size, s, s)
+    out = y_normalizer.decode(out)
+    test_loss  = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
+    test_loss.backward()
 
     model.eval()
     test_l2 = 0.0
