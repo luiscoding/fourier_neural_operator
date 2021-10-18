@@ -257,7 +257,7 @@ for ep in range(epochs):
     t1 = default_timer()
     inner_losses  = []
     train_l2 = 0
-    for i in range(500):
+    for i in range(50):
         losses =[]
         for task_idx in range(task_num):
             x, y = next(iter(train_loader[task_idx]))
