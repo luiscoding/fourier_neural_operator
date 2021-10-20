@@ -343,10 +343,10 @@ for ep in range(epochs):
     train_l2 = 0
     for i in range(50):
         losses =[]
+        optimizer.zero_grad()
         for task_idx in range(task_num):
             x, y = next(iter(train_loader[task_idx]))
             x, y = x.cuda(), y.cuda()
-            optimizer.zero_grad()
             out = model(x, task_idx).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             y = y_normalizer.decode(y)
@@ -361,6 +361,7 @@ for ep in range(epochs):
     test_pretrain_l2 = 0
     for  x,y  in test_pretrain_loader:
       #  x,y = next(iter(test_pretrain_loader))
+        optimizer_test.zero_grad()
         x,y = x.cuda(),y.cuda()
         out = model(x,task_num).reshape(batch_size, s, s)
         out = y_normalizer.decode(out)

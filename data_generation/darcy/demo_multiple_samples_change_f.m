@@ -18,7 +18,7 @@ sol = zeros(nsize,s,s);
 
 % different task corresponding to different a, change random seed here
 %Generate random coefficients from N(0,C)
-norm_a = GRF(alpha, tau, s,3120008);
+norm_a = GRF(alpha, tau, s,31200010);
 %Exponentiate it, so that a(x) > 0
 %Now a ~ Lognormal(0, C)
 %This is done so that the PDE is elliptic
@@ -47,7 +47,7 @@ for t=1:nsize
     
 end
 
-save('output3_12_train_1000_change_f_8','coeff','sol')
+save('output3_12_train_1000_change_f_10','coeff','sol')
 
 %Plot coefficients and solutions
 subplot(2,2,1)
