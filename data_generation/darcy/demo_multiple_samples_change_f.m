@@ -18,7 +18,7 @@ sol = zeros(nsize,s,s);
 
 % different task corresponding to different a, change random seed here
 %Generate random coefficients from N(0,C)
-norm_a = GRF(alpha, tau, s,t+1240001);
+norm_a = GRF(alpha, tau, s,3120008);
 %Exponentiate it, so that a(x) > 0
 %Now a ~ Lognormal(0, C)
 %This is done so that the PDE is elliptic
@@ -26,8 +26,8 @@ lognorm_a = exp(norm_a);
 
 %Another way to achieve ellipticity is to threshhold the coefficients
 thresh_a = zeros(s,s);
-thresh_a(norm_a >= 0) = 1;
-thresh_a(norm_a < 0) = 24;
+thresh_a(norm_a >= 0) = 3;
+thresh_a(norm_a < 0) = 12;
 
 
 rng('default')
@@ -47,7 +47,7 @@ for t=1:nsize
     
 end
 
-save('output1_24_train_1000_change_f','coeff','sol')
+save('output3_12_train_1000_change_f_8','coeff','sol')
 
 %Plot coefficients and solutions
 subplot(2,2,1)

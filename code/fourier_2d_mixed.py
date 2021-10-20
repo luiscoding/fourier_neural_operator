@@ -65,6 +65,84 @@ class SpectralConv2d(nn.Module):
         return x
 
 
+class FNO2d_Q_1layer(nn.Module):
+    def __init__(self, modes1, modes2, width, task_num):
+        super(FNO2d_Q_1layer, self).__init__()
+
+        """
+        The overall network. It contains 4 layers of the Fourier layer.
+        1. Lift the input to the desire channel dimension by self.fc0 .
+        2. 4 layers of the integral operators u' = (W + K)(u).
+            W defined by self.w; K defined by self.conv .
+        3. Project from the channel space to the output space by self.fc1 and self.fc2 .
+
+        input: the solution of the coefficient function and locations (a(x, y), x, y)
+        input shape: (batchsize, x=s, y=s, c=3)
+        output: the solution 
+        output shape: (batchsize, x=s, y=s, c=1)
+        """
+
+        self.modes1 = modes1
+        self.modes2 = modes2
+        self.width = width
+        self.task_num = task_num
+        self.padding = 9  # pad the domain if input is non-periodic
+        self.fc0 = nn.Linear(3, self.width)  # input channel is 3: (a(x, y), x, y)
+
+        self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
+        self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
+        self.conv2 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
+        self.conv3 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
+        self.w0 = nn.Conv2d(self.width, self.width, 1)
+        self.w1 = nn.Conv2d(self.width, self.width, 1)
+        self.w2 = nn.Conv2d(self.width, self.width, 1)
+        self.w3 = nn.Conv2d(self.width, self.width, 1)
+
+        self.fc1 = nn.Linear(self.width, 128)
+        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num + 1)])
+
+    def forward(self, x, task_idx):
+        grid = self.get_grid(x.shape, x.device)
+        x = torch.cat((x, grid), dim=-1)
+        x = self.fc0(x)
+        x = x.permute(0, 3, 1, 2)
+        x = F.pad(x, [0, self.padding, 0, self.padding])
+
+        x1 = self.conv0(x)
+        x2 = self.w0(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv1(x)
+        x2 = self.w1(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv2(x)
+        x2 = self.w2(x)
+        x = x1 + x2
+        x = F.gelu(x)
+
+        x1 = self.conv3(x)
+        x2 = self.w3(x)
+        x = x1 + x2
+
+        x = x[..., :-self.padding, :-self.padding]
+        x = x.permute(0, 2, 3, 1)
+        x = self.fc1(x)
+        x = F.gelu(x)
+        x = self.fc2[task_idx](x)
+        return x
+
+    def get_grid(self, shape, device):
+        batchsize, size_x, size_y = shape[0], shape[1], shape[2]
+        gridx = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
+        gridx = gridx.reshape(1, size_x, 1, 1).repeat([batchsize, 1, size_y, 1])
+        gridy = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
+        gridy = gridy.reshape(1, 1, size_y, 1).repeat([batchsize, size_x, 1, 1])
+        return torch.cat((gridx, gridy), dim=-1).to(device)
+
+
 class FNO2d(nn.Module):
     def __init__(self, modes1, modes2, width, task_num):
         super(FNO2d, self).__init__()
@@ -147,57 +225,49 @@ def read_train_data(input_dir,ntrain):
     count = 0
     x_train = []
     y_train = []
+    r = 5
+    h = int(((421 - 1) / r) + 1)
+    s = h
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mat"):
+        if filename.endswith(".mat") :
             FILE_PATH = os.path.join(input_dir, filename)
             reader = MatReader(FILE_PATH)
-            x_train.append(reader.read_field('coeff')[:ntrain])
-            y_train.append(reader.read_field('sol')[:ntrain])
+            x_train.append(reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s])
+            y_train.append(reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s])
             print("finished " + filename)
     x_train_mixed = torch.cat([item for item in x_train], 0)
     y_train_mixed = torch.cat([item for item in y_train], 0)
     return x_train_mixed, y_train_mixed
 
-def read_train_data_with_idx(input_dir,ntrain):
-    count = 0
-    x_train = []
-    y_train = []
-    count = 0
-    for filename in os.listdir(input_dir):
-        if filename.endswith(".mat"):
-            FILE_PATH = os.path.join(input_dir, filename)
-            reader = MatReader(FILE_PATH)
-            x_train.append(reader.read_field('coeff')[:ntrain])
-            y_train.append(reader.read_field('sol')[:ntrain])
-            print("finished " + filename)
-    x_train_mixed = torch.cat([item for item in x_train], 0)
-    y_train_mixed = torch.cat([item for item in y_train], 0)
-    return x_train_mixed, y_train_mixed, x_train, y_train
+
 ################################################################
 # configs
 ################################################################
 
-TEST_PATH = '../data/Darcy/Darcy_test/output1_24_test_100.mat'
+TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat'
 
-train_ratio = "mixed"
-train_dir = '../data/Darcy/Meta_data_85'
 
-x_train, y_train, x_train_idx, y_train_idx = read_train_data_with_idx(train_dir, 1000)
-test_ratio = "1_24"
+train_ratio = "f"
+train_dir = '../data/Darcy/Meta_data_f'
 
-model_name = train_ratio+'subtask__with_norm_train_model'
+x_train, y_train = read_train_data(train_dir, 1000)
+test_ratio = "3_12"
+
+model_name = train_ratio+'_2_subtask__with_norm_train_model'
 
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/subtask_'+train_ratio+'/' + model_name + '.mat'
-MODEL_PATH = '../models/train_' + train_ratio + '_test_' + '1_7' + '/' + model_name
+MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
-ntrain = 9000
-ntest = 100
-task_num= 9
+ntest = 800
+ntest_pretrain = 200
+task_num= 5
+ntrain = task_num*1000
+
 
 batch_size = 20
 learning_rate = 0.001
 
-epochs = 2
+epochs = 500
 step_size = 100
 gamma = 0.5
 
@@ -216,19 +286,26 @@ reader = MatReader(TEST_PATH)
 #y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
 
 reader.load_file(TEST_PATH)
-x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+x_test_pretrain = reader.read_field('coeff')[:ntest_pretrain, ::r, ::r][:, :s, :s]
+y_test_pretrain = reader.read_field('sol')[:ntest_pretrain, ::r, ::r][:, :s, :s]
+x_test = reader.read_field('coeff')[ntest_pretrain:, ::r, ::r][:, :s, :s]
+y_test = reader.read_field('sol')[ntest_pretrain:, ::r, ::r][:, :s, :s]
+print(x_train.shape)
+print(x_test.shape)
 
 x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
+x_test_pretrain = x_normalizer.encode(x_test_pretrain)
 #
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
+y_test_pretrain = y_normalizer.encode(y_test_pretrain)
 y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
+x_test_pretrain = x_test_pretrain.reshape(ntest_pretrain,s , s, 1)
 train_loader = []
 for t in range(task_num):
     train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
@@ -236,11 +313,15 @@ for t in range(task_num):
 
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
                                           shuffle=False)
+test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test_pretrain, y_test_pretrain), batch_size=batch_size,
+                                          shuffle=True)
 
 ################################################################
 # training and evaluation
 ################################################################
-model = FNO2d(modes, modes, width, task_num).cuda()
+#model = FNO2d(modes, modes, width, task_num).cuda()
+model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
+torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
 # model.load_state_dict(torch.load(MODEL_PATH))
 model.cuda()
@@ -251,8 +332,10 @@ myloss = LpLoss(size_average=False)
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
 optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-optimizer_test =  Adam(model.fc2[task_num].parameters(), lr=learning_rate, weight_decay=1e-4)
+optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
+#optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()},{'params': model.fc1[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+scheduler_test =  torch.optim.lr_scheduler.StepLR(optimizer_test, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
     model.train()
     t1 = default_timer()
@@ -274,28 +357,34 @@ for ep in range(epochs):
     scheduler.step()
 
     # meta test train last layer
-    x,y = next(iter(test_loader))
-    x,y = x.cuda(),y.cuda()
-    out = model(x,task_idx+1).reshape(batch_size, s, s)
-    out = y_normalizer.decode(out)
-    test_loss  = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
-    test_loss.backward()
-    optimizer_test.step()
+    test_num = 200
+    test_pretrain_l2 = 0
+    for  x,y  in test_pretrain_loader:
+      #  x,y = next(iter(test_pretrain_loader))
+        x,y = x.cuda(),y.cuda()
+        out = model(x,task_num).reshape(batch_size, s, s)
+        out = y_normalizer.decode(out)
+        test_loss = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
+        test_pretrain_l2 += test_loss.item()
+        test_loss.backward()
+        optimizer_test.step()
+    scheduler_test.step()
 
     model.eval()
     test_l2 = 0.0
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.cuda(), y.cuda()
-            out = model(x,task_idx).reshape(batch_size, s, s)
+            out = model(x,task_num).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
 
     train_l2 /= ntrain
     test_l2 /= ntest
+    test_pretrain_l2/=test_num
     t2 = default_timer()
-    print(ep, t2 - t1, train_l2, test_l2)
+    print(ep, t2 - t1, train_l2, test_pretrain_l2,test_l2)
 
 savemat(RESULT_PATH,
         {"sol_learn": out.detach().cpu().numpy(), 'sol_ground': y.view(batch_size, s, s).detach().cpu().numpy()})
-
+torch.save(model.state_dict(), MODEL_PATH)
