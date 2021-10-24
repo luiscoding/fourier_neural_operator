@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from scipy.io import savemat
 from torch.nn.parameter import Parameter
 import os
+from os.path import exists
 import matplotlib.pyplot as plt
 
 import operator
@@ -229,7 +230,7 @@ def read_train_data(input_dir,ntrain):
     h = int(((421 - 1) / r) + 1)
     s = h
     for filename in os.listdir(input_dir):
-        if filename.endswith(".mat") and 'f_3' in filename :
+        if filename.endswith(".mat") and 'f_3' not in filename :
             FILE_PATH = os.path.join(input_dir, filename)
             reader = MatReader(FILE_PATH)
             x_train.append(reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s])
@@ -243,31 +244,32 @@ def read_train_data(input_dir,ntrain):
 ################################################################
 # configs
 ################################################################
-
+# input
 TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat'
-
-
+#model name
 train_ratio = "f"
-train_dir = '../data/Darcy/Meta_data_f_test'
-ntrain_pertask = 400
-x_train, y_train = read_train_data(train_dir, ntrain_pertask)
 test_ratio = "3_12"
 
-model_name = train_ratio+'train_400_3_subtask__with_norm_train_model'
+model_name = train_ratio+'train_task1-8_800_test_3_800_with_norm_train_model'
+train_dir = '../data/Darcy/Meta_data_f'
+ntrain_pertask = 1000
+x_train, y_train = read_train_data(train_dir, ntrain_pertask)
+
 
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/subtask_'+train_ratio+'/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
 ntest = 200
-ntest_pretrain = 400
-task_num= 1
+ntest_pretrain =800
+task_num= 7
 ntrain = task_num*ntrain_pertask
-
-
+# flag variable to indicate whether need to train B first
+train_flag = False
 batch_size = 20
 learning_rate = 0.003
 
-epochs = 50
+epochs = 500
+epochs_test = 500
 step_size = 100
 gamma = 0.5
 
@@ -286,10 +288,15 @@ reader = MatReader(TEST_PATH)
 #y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
 
 reader.load_file(TEST_PATH)
-x_test_pretrain = reader.read_field('coeff')[ntrain_pertask:ntrain_pertask+ntest_pretrain, ::r, ::r][:, :s, :s]
-y_test_pretrain = reader.read_field('sol')[ntrain_pertask:ntrain_pertask+ntest_pretrain, ::r, ::r][:, :s, :s]
-x_test = reader.read_field('coeff')[ntrain_pertask+ntest_pretrain:, ::r, ::r][:, :s, :s]
-y_test = reader.read_field('sol')[ntrain_pertask+ntest_pretrain:, ::r, ::r][:, :s, :s]
+# x_test_pretrain = reader.read_field('coeff')[ntrain_pertask:ntrain_pertask+ntest_pretrain, ::r, ::r][:, :s, :s]
+# y_test_pretrain = reader.read_field('sol')[ntrain_pertask:ntrain_pertask+ntest_pretrain, ::r, ::r][:, :s, :s]
+# x_test = reader.read_field('coeff')[ntrain_pertask+ntest_pretrain:, ::r, ::r][:, :s, :s]
+# y_test = reader.read_field('sol')[ntrain_pertask+ntest_pretrain:, ::r, ::r][:, :s, :s]
+# print(x_train.shape)
+x_test_pretrain = reader.read_field('coeff')[:800, ::r, ::r][:, :s, :s]
+y_test_pretrain = reader.read_field('sol')[:800, ::r, ::r][:, :s, :s]
+x_test = reader.read_field('coeff')[800:, ::r, ::r][:, :s, :s]
+y_test = reader.read_field('sol')[800:, ::r, ::r][:, :s, :s]
 print(x_train.shape)
 print(x_test.shape)
 print(x_test_pretrain.shape)
@@ -298,6 +305,7 @@ x_normalizer = UnitGaussianNormalizer(x_train)
 x_train = x_normalizer.encode(x_train)
 x_test = x_normalizer.encode(x_test)
 x_test_pretrain = x_normalizer.encode(x_test_pretrain)
+print(x_test_pretrain.shape)
 #
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
@@ -306,10 +314,11 @@ y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
+print(ntest_pretrain)
 x_test_pretrain = x_test_pretrain.reshape(ntest_pretrain,s , s, 1)
 train_loader = []
 for t in range(task_num):
-    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*1000:(t+1)*1000,:], y_train[t*1000:(t+1)*1000,:]), batch_size=batch_size,
+    train_loader.append(torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_train[t*ntrain_pertask:(t+1)*ntrain_pertask,:], y_train[t*ntrain_pertask:(t+1)*ntrain_pertask,:]), batch_size=batch_size,
                                            shuffle=True))
 
 test_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(x_test, y_test), batch_size=batch_size,
@@ -322,56 +331,91 @@ test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDatase
 ################################################################
 model = FNO2d(modes, modes, width, task_num).cuda()
 #model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
-torch.save(model.state_dict(), MODEL_PATH)
+#torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
-# model.load_state_dict(torch.load(MODEL_PATH))
+if (exists(MODEL_PATH)):
+    print("load model")
+    model.load_state_dict(torch.load(MODEL_PATH))
+else:
+    train_flag = True
 model.cuda()
 
 
 myloss = LpLoss(size_average=False)
 
+if(train_flag ==True):
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
-optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-#optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
+# optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
 optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()},{'params': model.fc1[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 scheduler_test =  torch.optim.lr_scheduler.StepLR(optimizer_test, step_size=step_size, gamma=gamma)
-for ep in range(epochs):
-    model.train()
-    t1 = default_timer()
-    train_l2 = 0
-    for i in range(int(ntrain_pertask/20)):
-        losses =[]
-        optimizer.zero_grad()
-        for task_idx in range(task_num):
-            x, y = next(iter(train_loader[task_idx]))
-            x, y = x.cuda(), y.cuda()
-            out = model(x, task_idx).reshape(batch_size, s, s)
-            out = y_normalizer.decode(out)
-            y = y_normalizer.decode(y)
-            losses.append(myloss(out.view(batch_size, -1), y.view(batch_size, -1)))
-        sum(losses).backward()
-        optimizer.step()
-        train_l2 += sum(losses).item()
-    scheduler.step()
-
-    # meta test train last layer
-    test_num = ntest_pretrain
-    test_pretrain_l2 = 0
-
-    for  x,y  in test_pretrain_loader:
-      #  x,y = next(iter(test_pretrain_loader))
+#
+if(train_flag == True):
+    for ep in range(epochs):
+        print("training model ")
         model.train()
+        t1 = default_timer()
+        train_l2 = 0
+        for i in range(int(ntrain_pertask/20)):
+            losses =[]
+            optimizer.zero_grad()
+            for task_idx in range(task_num):
+                x, y = next(iter(train_loader[task_idx]))
+                x, y = x.cuda(), y.cuda()
+                out = model(x, task_idx).reshape(batch_size, s, s)
+                out = y_normalizer.decode(out)
+                y = y_normalizer.decode(y)
+                losses.append(myloss(out.view(batch_size, -1), y.view(batch_size, -1)))
+            sum(losses).backward()
+            optimizer.step()
+            train_l2 += sum(losses).item()
+        scheduler.step()
+
+        test_l2 = 0
+        if(ep %10 ==0 ):
+            model.eval()
+            test_l2 = 0.0
+            with torch.no_grad():
+                for x, y in test_loader:
+                    x, y = x.cuda(), y.cuda()
+                    out = model(x,task_num).reshape(batch_size, s, s)
+                    out = y_normalizer.decode(out)
+                    test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
+
+            train_l2 /= ntrain
+            test_l2 /= ntest
+            t2 = default_timer()
+            print(ep, t2 - t1, train_l2,test_l2)
+
+    # save the training model
+    print("save the trained model now")
+    torch.save(model.state_dict(), MODEL_PATH)
+
+
+test_num = ntest_pretrain
+for ep in range(epochs_test):
+    # meta test train last layer
+    print("meta test train here ")
+    model.train()
+    test_pretrain_l2 = 0
+    t1 = default_timer()
+    for  x,y  in test_pretrain_loader:
         optimizer_test.zero_grad()
         x,y = x.cuda(),y.cuda()
         out = model(x,task_num).reshape(batch_size, s, s)
         out = y_normalizer.decode(out)
+        y = y_normalizer.decode(y)
         test_loss = myloss(out.view(batch_size,-1),y.view(batch_size,-1))
         test_pretrain_l2 += test_loss.item()
         test_loss.backward()
         optimizer_test.step()
     scheduler_test.step()
+
 
     model.eval()
     test_l2 = 0.0
@@ -382,12 +426,14 @@ for ep in range(epochs):
             out = y_normalizer.decode(out)
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
 
-    train_l2 /= ntrain
+
     test_l2 /= ntest
     test_pretrain_l2/=test_num
     t2 = default_timer()
-    print(ep, t2 - t1, train_l2, test_pretrain_l2,test_l2)
+    print("epoch num ",ep,"time/epoch " ,t2 - t1, "meta test loss ", test_pretrain_l2,"test loss ",test_l2)
+
+torch.save(model.state_dict(), MODEL_PATH+"_pretrain")
 
 savemat(RESULT_PATH,
         {"sol_learn": out.detach().cpu().numpy(), 'sol_ground': y.view(batch_size, s, s).detach().cpu().numpy()})
-torch.save(model.state_dict(), MODEL_PATH)
+

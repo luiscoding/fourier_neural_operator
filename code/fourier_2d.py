@@ -150,16 +150,19 @@ class FNO2d(nn.Module):
 TRAIN_PATH = '../data/Darcy_1_24_0.5/output1_24_train_1000.mat'
 TEST_PATH = '../data/Darcy_test/output1_24_test_100.mat'
 
-train_ratio = "1_24"
-test_ratio = "1_24"
+TRAIN_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat'
+TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat'
 
-model_name = train_ratio + '_with_norm_train_test_model'
+train_ratio = "f"
+test_ratio = "3_12"
+
+model_name = train_ratio + 'f_change_with_norm_train_test_model'
 
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
-ntrain = 1000
-ntest = 100
+ntrain = 800
+ntest = 200
 
 batch_size = 20
 learning_rate = 0.001
@@ -183,8 +186,8 @@ x_train = reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s]
 y_train = reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s]
 
 reader.load_file(TEST_PATH)
-x_test = reader.read_field('coeff')[:ntest, ::r, ::r][:, :s, :s]
-y_test = reader.read_field('sol')[:ntest, ::r, ::r][:, :s, :s]
+x_test = reader.read_field('coeff')[ntrain:, ::r, ::r][:, :s, :s]
+y_test = reader.read_field('sol')[ntrain:, ::r, ::r][:, :s, :s]
 
 # x_train_test = torch.cat((x_train, x_test), 0)
 x_normalizer = UnitGaussianNormalizer(x_train)
@@ -195,6 +198,8 @@ x_test = x_normalizer.encode(x_test)
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
 
+print(x_train.shape)
+print(x_test.shape)
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
 

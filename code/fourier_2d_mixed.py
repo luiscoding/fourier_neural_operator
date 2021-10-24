@@ -319,8 +319,8 @@ test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDatase
 ################################################################
 # training and evaluation
 ################################################################
-#model = FNO2d(modes, modes, width, task_num).cuda()
-model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
+model = FNO2d(modes, modes, width, task_num).cuda()
+#model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
 torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
 # model.load_state_dict(torch.load(MODEL_PATH))
@@ -332,8 +332,8 @@ myloss = LpLoss(size_average=False)
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
 optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
-#optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()},{'params': model.fc1[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
+#optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
+optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()},{'params': model.fc1[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 scheduler_test =  torch.optim.lr_scheduler.StepLR(optimizer_test, step_size=step_size, gamma=gamma)
 for ep in range(epochs):
