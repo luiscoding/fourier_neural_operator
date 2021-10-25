@@ -88,9 +88,9 @@ class FNO2d_Q_1layer(nn.Module):
         self.width = width
         self.task_num = task_num
         self.padding = 9  # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(3, self.width)  # input channel is 3: (a(x, y), x, y)
+        self.fc0 = nn.ModuleList([ nn.Linear(3, self.width) for i in range(task_num+1)]) # input channel is 3: (a(x, y), x, y)
 
-        self.conv0 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
+        self.conv0 =nn.ModuleList([ SpectralConv2d(self.width, self.width, self.modes1, self.modes2) for i in range(task_num+1)])
         self.conv1 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv2 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
         self.conv3 = SpectralConv2d(self.width, self.width, self.modes1, self.modes2)
@@ -100,16 +100,17 @@ class FNO2d_Q_1layer(nn.Module):
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
         self.fc1 = nn.Linear(self.width, 128)
-        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num + 1)])
+        self.fc2 = nn.Linear(128,1)
+      # self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num + 1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
         x = torch.cat((x, grid), dim=-1)
-        x = self.fc0(x)
+        x = self.fc0[task_idx](x)
         x = x.permute(0, 3, 1, 2)
         x = F.pad(x, [0, self.padding, 0, self.padding])
 
-        x1 = self.conv0(x)
+        x1 = self.conv0[task_idx](x)
         x2 = self.w0(x)
         x = x1 + x2
         x = F.gelu(x)
@@ -132,7 +133,7 @@ class FNO2d_Q_1layer(nn.Module):
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
-        x = self.fc2[task_idx](x)
+        x = self.fc2(x)
         return x
 
     def get_grid(self, shape, device):
@@ -250,7 +251,7 @@ TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat
 train_ratio = "f"
 test_ratio = "3_12"
 
-model_name = train_ratio+'train_task1-10_1000_test_3_800_with_norm_train_model'
+model_name = train_ratio+'P_conv0_train_task1-10_1000_test_3_800_with_norm_train_model'
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 1000
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
@@ -330,8 +331,8 @@ test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDatase
 ################################################################
 # training and evaluation
 ################################################################
-model = FNO2d(modes, modes, width, task_num).cuda()
-#model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
+#model = FNO2d(modes, modes, width, task_num).cuda()
+model = FNO2d_Q_1layer(modes, modes, width, task_num).cuda()
 #torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
 if (exists(MODEL_PATH)):
