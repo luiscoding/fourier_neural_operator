@@ -255,7 +255,7 @@ train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 1000
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
 
-
+torch.cuda.empty_cache()
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/subtask_'+train_ratio+'/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
