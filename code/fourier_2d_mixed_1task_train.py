@@ -236,9 +236,9 @@ def read_train_data(input_dir,ntrain):
             x_train.append(reader.read_field('coeff')[:ntrain, ::r, ::r][:, :s, :s])
             y_train.append(reader.read_field('sol')[:ntrain, ::r, ::r][:, :s, :s])
             print("finished " + filename)
-    x_train_mixed = torch.cat([item for item in x_train], 0)
-    y_train_mixed = torch.cat([item for item in y_train], 0)
-    return x_train_mixed, y_train_mixed
+
+
+    return  torch.cat([item for item in x_train], 0), torch.cat([item for item in y_train], 0)
 
 
 ################################################################
@@ -250,7 +250,7 @@ TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat
 train_ratio = "f"
 test_ratio = "3_12"
 
-model_name = train_ratio+'train_task1-8_800_test_3_800_with_norm_train_model'
+model_name = train_ratio+'train_task1-10_1000_test_3_800_with_norm_train_model'
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 1000
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
@@ -261,7 +261,7 @@ MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + mo
 
 ntest = 200
 ntest_pretrain =800
-task_num= 7
+task_num= 9
 ntrain = task_num*ntrain_pertask
 # flag variable to indicate whether need to train B first
 train_flag = False
