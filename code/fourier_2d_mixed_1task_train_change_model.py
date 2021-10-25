@@ -351,7 +351,7 @@ if(train_flag ==True):
 # inner loop update the last layer for each task
 # outer loop update the representation of all tasks
 # optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
-optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()},{'params': model.fc1[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
+optimizer_test =  Adam([{'params': model.fc2[task_num].parameters()}], lr=learning_rate, weight_decay=1e-4)
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 scheduler_test =  torch.optim.lr_scheduler.StepLR(optimizer_test, step_size=step_size, gamma=gamma)
 #
