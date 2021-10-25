@@ -250,7 +250,7 @@ TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat
 train_ratio = "f"
 test_ratio = "3_12"
 
-model_name = train_ratio+'1_layer_train_task1-10_800_test_3_800_with_norm_train_model'
+model_name = train_ratio+'1_layer_train_task1-10_1000_test_3_800_with_norm_train_model'
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 1000
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
