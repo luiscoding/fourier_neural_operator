@@ -181,9 +181,10 @@ class FNO2d_P_1layer(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.Linear(self.width, 128)
-        self.fc2 = nn.Linear(128,1)
-      #  self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num + 1)])
+       # self.fc1 = nn.Linear(self.width, 128)
+        self.fc1 = nn.ModuleList([nn.Linear(self.width,128) for i in range(task_num+1)])
+        #self.fc2 = nn.Linear(128,1)
+        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num + 1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
@@ -213,7 +214,7 @@ class FNO2d_P_1layer(nn.Module):
 
         x = x[..., :-self.padding, :-self.padding]
         x = x.permute(0, 2, 3, 1)
-        x = self.fc1(x)
+        x = self.fc1[task_idx](x)
         x = F.gelu(x)
         x = self.fc2(x)
         return x
@@ -411,7 +412,9 @@ TEST_PATH = '../data/Darcy/Meta_data_f_test/output3_12_train_1000_change_f_3.mat
 train_ratio = "f"
 test_ratio = "3_12"
 
+
 model_name = train_ratio+'Q_2layer_train_task1-34_100_test_3_800_with_norm_train_model'
+
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 100
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
@@ -483,8 +486,12 @@ test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDatase
 # training and evaluation
 ################################################################
 #model = FNO2d(modes, modes, width, task_num).cuda()
+
 model = FNO2d(modes, modes, width, task_num)
 print(model)
+
+model = FNO2d_P_1layer(modes, modes, width, task_num).cuda()
+
 #torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
 if (exists(MODEL_PATH)):
