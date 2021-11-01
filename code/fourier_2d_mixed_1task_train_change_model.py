@@ -67,7 +67,6 @@ class SpectralConv2d(nn.Module):
         x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
         return x
 
-
 class FNO2d_Q_1layer(nn.Module):
     def __init__(self, modes1, modes2, width, task_num):
         super(FNO2d_Q_1layer, self).__init__()
@@ -144,8 +143,6 @@ class FNO2d_Q_1layer(nn.Module):
         gridy = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
         gridy = gridy.reshape(1, 1, size_y, 1).repeat([batchsize, size_x, 1, 1])
         return torch.cat((gridx, gridy), dim=-1).to(device)
-
-
 
 class FNO2d_P_1layer(nn.Module):
     def __init__(self, modes1, modes2, width, task_num):
@@ -306,7 +303,6 @@ class FNO2d_P_Q2layer(nn.Module):
         gridy = gridy.reshape(1, 1, size_y, 1).repeat([batchsize, size_x, 1, 1])
         return torch.cat((gridx, gridy), dim=-1).to(device)
 
-
 class FNO2d(nn.Module):
     def __init__(self, modes1, modes2, width, task_num):
         super(FNO2d, self).__init__()
@@ -340,8 +336,8 @@ class FNO2d(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.ModuleList([nn.Linear(self.width, 128) for i in range(task_num+1)])
-        self.fc2 = nn.ModuleList([nn.Linear(128, 1) for i in range(task_num+1)])
+        self.fc1 = nn.ModuleList([nn.Linear(self.width, 64) for i in range(task_num+1)])
+        self.fc2 = nn.ModuleList([nn.Linear(64, 1) for i in range(task_num+1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
@@ -384,7 +380,6 @@ class FNO2d(nn.Module):
         gridy = gridy.reshape(1, 1, size_y, 1).repeat([batchsize, size_x, 1, 1])
         return torch.cat((gridx, gridy), dim=-1).to(device)
 
-
 def read_train_data(input_dir,ntrain):
     x_train = []
     y_train = []
@@ -413,13 +408,14 @@ train_ratio = "f"
 test_ratio = "3_12"
 
 
-model_name = train_ratio+'Q_2layer_train_task1-34_100_test_3_800_with_norm_train_model'
+model_name = train_ratio+'GPU_Q_2layer_train_task1-34_100_test_3_800_with_norm_train_model'
 
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 100
 x_train, y_train = read_train_data(train_dir, ntrain_pertask)
 
 torch.cuda.empty_cache()
+torch.cuda.set_per_process_memory_fraction(1.0)
 RESULT_PATH = '../results/train_' + train_ratio + '_test_' + test_ratio + '/subtask_'+train_ratio+'/' + model_name + '.mat'
 MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + model_name
 
@@ -438,7 +434,7 @@ step_size = 100
 gamma = 0.5
 
 modes = 12
-width = 32
+width = 16
 
 r = 5
 h = int(((421 - 1) / r) + 1)
@@ -487,10 +483,18 @@ test_pretrain_loader = torch.utils.data.DataLoader(torch.utils.data.TensorDatase
 ################################################################
 #model = FNO2d(modes, modes, width, task_num).cuda()
 
-model = FNO2d(modes, modes, width, task_num)
+model = FNO2d(modes, modes, width, task_num).cuda()
 print(model)
-
-model = FNO2d_P_1layer(modes, modes, width, task_num).cuda()
+mem_params = sum([param.nelement()*param.element_size() for param in model.parameters()])
+mem_bufs = sum([buf.nelement()*buf.element_size() for buf in model.buffers()])
+mem = mem_params + mem_bufs # in bytes
+print("memory for model")
+print(mem)
+print(mem_params)
+print(mem_bufs)
+print(torch.cuda.max_memory_allocated())
+print("memory reserved")
+print(torch.cuda.memory_reserved())
 
 #torch.save(model.state_dict(), MODEL_PATH)
 print(count_params(model))
@@ -501,9 +505,12 @@ else:
     train_flag = True
 print(torch.cuda.memory_allocated())
 print(torch.cuda.max_memory_allocated())
-#model.cuda()
-print(torch.cuda.memory_allocated())
+model.cuda()
+#print(torch.cuda.memory_allocated())
 print(torch.cuda.max_memory_allocated())
+print(torch.cuda.memory_stats())
+
+
 
 myloss = LpLoss(size_average=False)
 
