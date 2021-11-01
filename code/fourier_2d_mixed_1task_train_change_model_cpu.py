@@ -463,7 +463,7 @@ print(x_test_pretrain.shape)
 y_normalizer = UnitGaussianNormalizer(y_train)
 y_train = y_normalizer.encode(y_train)
 y_test_pretrain = y_normalizer.encode(y_test_pretrain)
-y_normalizer.cuda()
+#y_normalizer.cuda()
 
 x_train = x_train.reshape(ntrain, s, s, 1)
 x_test = x_test.reshape(ntest, s, s, 1)
@@ -524,7 +524,7 @@ if(train_flag == True):
             torch.cuda.empty_cache()
             for task_idx in range(task_num):
                 x, y = next(iter(train_loader[task_idx]))
-                x, y = x.cuda(), y.cuda()
+              #  x, y = x.cuda(), y.cuda()
                 out = model(x, task_idx).reshape(batch_size, s, s)
                 out = y_normalizer.decode(out)
                 y = y_normalizer.decode(y)
@@ -541,7 +541,7 @@ if(train_flag == True):
             test_l2 = 0.0
             with torch.no_grad():
                 for x, y in test_loader:
-                    x, y = x.cuda(), y.cuda()
+                 #   x, y = x.cuda(), y.cuda()
                     out = model(x,task_num).reshape(batch_size, s, s)
                     out = y_normalizer.decode(out)
                     test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
@@ -565,7 +565,7 @@ for ep in range(epochs_test):
     t1 = default_timer()
     for  x,y  in test_pretrain_loader:
         optimizer_test.zero_grad()
-        x,y = x.cuda(),y.cuda()
+       # x,y = x.cuda(),y.cuda()
         out = model(x,task_num).reshape(batch_size, s, s)
         out = y_normalizer.decode(out)
         y = y_normalizer.decode(y)
@@ -580,7 +580,7 @@ for ep in range(epochs_test):
     test_l2 = 0.0
     with torch.no_grad():
         for x, y in test_loader:
-            x, y = x.cuda(), y.cuda()
+           # x, y = x.cuda(), y.cuda()
             out = model(x,task_num).reshape(batch_size, s, s)
             out = y_normalizer.decode(out)
             test_l2 += myloss(out.view(batch_size, -1), y.view(batch_size, -1)).item()
