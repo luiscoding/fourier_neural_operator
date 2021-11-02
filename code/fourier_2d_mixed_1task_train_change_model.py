@@ -336,8 +336,8 @@ class FNO2d(nn.Module):
         self.w2 = nn.Conv2d(self.width, self.width, 1)
         self.w3 = nn.Conv2d(self.width, self.width, 1)
 
-        self.fc1 = nn.ModuleList([nn.Linear(self.width, 64) for i in range(task_num+1)])
-        self.fc2 = nn.ModuleList([nn.Linear(64, 1) for i in range(task_num+1)])
+        self.fc1 = nn.ModuleList([nn.Linear(self.width, 32) for i in range(task_num+1)])
+        self.fc2 = nn.ModuleList([nn.Linear(32, 1) for i in range(task_num+1)])
 
     def forward(self, x, task_idx):
         grid = self.get_grid(x.shape, x.device)
@@ -408,7 +408,7 @@ train_ratio = "f"
 test_ratio = "3_12"
 
 
-model_name = train_ratio+'GPU_Q_2layer_train_task1-34_100_test_3_800_with_norm_train_model'
+model_name = train_ratio+'Width32_Q_2layer_train_task1-34_100_test_3_800_with_norm_train_model'
 
 train_dir = '../data/Darcy/Meta_data_f'
 ntrain_pertask = 100
@@ -421,11 +421,11 @@ MODEL_PATH = '../models/train_' + train_ratio + '_test_' + test_ratio + '/' + mo
 
 ntest = 200
 ntest_pretrain =800
-task_num=33
+task_num=53
 ntrain = task_num*ntrain_pertask
 # flag variable to indicate whether need to train B first
 train_flag = False
-batch_size = 20
+batch_size = 10
 learning_rate = 0.003
 
 epochs = 500
